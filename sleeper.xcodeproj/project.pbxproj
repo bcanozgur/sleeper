@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		38238908F73190AFE5247DCB /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 38238EEE7614699BF95CEE67 /* .gitignore */; };
+		3823892C05091D1FB1A93AC3 /* MyApiFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3823835BD4559F200897C28C /* MyApiFunctions.swift */; };
 		C2837BEE2926C34C00810780 /* sleeperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2837BED2926C34C00810780 /* sleeperApp.swift */; };
 		C2837BF02926C34C00810780 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2837BEF2926C34C00810780 /* ContentView.swift */; };
 		C2837BF22926C34C00810780 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2837BF12926C34C00810780 /* Assets.xcassets */; };
@@ -34,6 +36,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3823835BD4559F200897C28C /* MyApiFunctions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MyApiFunctions.swift; sourceTree = "<group>"; };
+		38238EEE7614699BF95CEE67 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = file.gitignore; path = .gitignore; sourceTree = "<group>"; };
 		C2837BEA2926C34C00810780 /* sleeper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sleeper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C2837BED2926C34C00810780 /* sleeperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sleeperApp.swift; sourceTree = "<group>"; };
 		C2837BEF2926C34C00810780 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -79,6 +83,7 @@
 				C2837BFE2926C34D00810780 /* sleeperTests */,
 				C2837C082926C34D00810780 /* sleeperUITests */,
 				C2837BEB2926C34C00810780 /* Products */,
+				38238EEE7614699BF95CEE67 /* .gitignore */,
 			);
 			sourceTree = "<group>";
 		};
@@ -100,6 +105,7 @@
 				C2837BF12926C34C00810780 /* Assets.xcassets */,
 				C2837BF62926C34C00810780 /* sleeper.entitlements */,
 				C2837BF32926C34C00810780 /* Preview Content */,
+				3823835BD4559F200897C28C /* MyApiFunctions.swift */,
 			);
 			path = sleeper;
 			sourceTree = "<group>";
@@ -235,6 +241,7 @@
 			files = (
 				C2837BF52926C34C00810780 /* Preview Assets.xcassets in Resources */,
 				C2837BF22926C34C00810780 /* Assets.xcassets in Resources */,
+				38238908F73190AFE5247DCB /* .gitignore in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +268,7 @@
 			files = (
 				C2837BF02926C34C00810780 /* ContentView.swift in Sources */,
 				C2837BEE2926C34C00810780 /* sleeperApp.swift in Sources */,
+				3823892C05091D1FB1A93AC3 /* MyApiFunctions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
