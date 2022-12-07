@@ -12,16 +12,18 @@ struct ContentView: View {
     @State private var wakeUp = Date.now
 
     var body: some View {
-        
+
         VStack {
             DatePicker("Enter hibernation time: ", selection: $wakeUp,
-                       displayedComponents: [.date, .hourAndMinute])
-                }.environment(\.timeZone, TimeZone(secondsFromGMT: 3*60*60)!)
+                    displayedComponents: [.date, .hourAndMinute])
+        }
+                .environment(\.timeZone, TimeZone(secondsFromGMT: 3 * 60 * 60)!)
         Button("Go") {
             runCommand()
         }
-        .padding()
+                .padding()
     }
+
     func runCommand() -> Void {
         let scheduledDate = MyAPIFunctions.shortString(fromDate: wakeUp)
 
@@ -36,21 +38,21 @@ struct ContentView: View {
             print("An error occured: \(error)")
         }
     }
-    
+
     func shell(_ command: String) -> String {
         let task = Process()
         let pipe = Pipe()
-        
+
         task.standardOutput = pipe
         task.standardError = pipe
         task.arguments = ["-c", command]
         task.launchPath = "/bin/zsh"
         task.standardInput = nil
         task.launch()
-        
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8)!
-        
+
         return output
     }
 }
