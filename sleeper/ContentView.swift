@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Cocoa
 
 struct ContentView: View {
     @State private var wakeUp = Date.now
@@ -21,35 +22,21 @@ struct ContentView: View {
         }
         .padding()
     }
-//    true -    sudo pmset schedule sleep "11/13/22 03:30:00"
-//    false -   sudo pmset schedule sleep "18/11/2022 17:50:00"
     func runCommand() -> Void {
         let scheduledDate = MyAPIFunctions.shortString(fromDate: wakeUp)
 
-        let command: String = "pmset schedule sleep \"" + scheduledDate + ":00\""
+        let command: String = "pmset schedule sleep '" + scheduledDate + ":00'"
         let convertedPmsetCommand = command.replacingOccurrences(of: ".", with: "/")
         print(convertedPmsetCommand)
-//        shell(convertedPmsetCommand)
+        let nsScriptCommand = "do shell script \"" + convertedPmsetCommand + "\" with administrator privileges"
 
-//do shell script "pmset schedule sleep "12/01/22 16:19:00"" with administrator privileges
-        var nsScriptCommand = "do shell script \"" + convertedPmsetCommand + "\" with administrator privileges"
         print(nsScriptCommand)
         var error: NSDictionary?
         let scriptObject = NSAppleScript(source: nsScriptCommand)!
-        var eventResult = scriptObject.executeAndReturnError(&error)
-        print(error)
-//        print(eventResult)
-
-//        if let scriptObject = NSAppleScript(source: myAppleScript) {
-//            if let output: NSAppleEventDescriptor = scriptObject.executeAndReturnError(
-//                    &error) {
-//                print(output.stringValue)
-//            } else if (error != nil) {
-//                print("error: \(error)")
-//            }
-//        }
-
-        print("command executed...")
+        scriptObject.executeAndReturnError(&error)
+        if let errorDict = error {
+            print("An error occured: \(error)")
+        }
     }
     
     func shell(_ command: String) -> String {
