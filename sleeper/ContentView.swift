@@ -20,6 +20,7 @@ struct ContentView: View {
                 .environment(\.timeZone, TimeZone(secondsFromGMT: 3 * 60 * 60)!)
         Button("Go") {
             runCommand()
+            exit(0)
         }
                 .padding()
     }
