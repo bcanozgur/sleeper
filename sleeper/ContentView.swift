@@ -27,10 +27,8 @@ struct ContentView: View {
 
         let command: String = "pmset schedule sleep '" + scheduledDate + ":00'"
         let convertedPmsetCommand = command.replacingOccurrences(of: ".", with: "/")
-        print(convertedPmsetCommand)
         let nsScriptCommand = "do shell script \"" + convertedPmsetCommand + "\" with administrator privileges"
 
-        print(nsScriptCommand)
         var error: NSDictionary?
         let scriptObject = NSAppleScript(source: nsScriptCommand)!
         scriptObject.executeAndReturnError(&error)
