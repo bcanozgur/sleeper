@@ -106,13 +106,6 @@ sleeperTests/
 ├── DateUtilitiesTests.swift      # Date validation tests
 ├── MenuBarManagerTests.swift     # Menu bar integration tests
 └── SchedulePersistenceTests.swift # Storage tests
-
-.kiro/specs/
-├── mac-sleep-scheduler/          # Original window-based spec
-└── menubar-sleep-scheduler/      # Current menu bar implementation
-    ├── requirements.md           # Feature requirements
-    ├── design.md                # Technical design
-    └── tasks.md                 # Implementation tasks
 ```
 
 ## 🎯 Use Cases
