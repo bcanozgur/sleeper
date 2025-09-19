@@ -13,19 +13,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var scheduleManager: MenuBarScheduleManager?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Hide dock icon and main window
-        NSApp.setActivationPolicy(.accessory)
-        
-        // Initialize schedule manager
+        // Initialize components
+        menuBarManager = MenuBarManager()
         scheduleManager = MenuBarScheduleManager()
         
-        // Initialize menu bar
-        menuBarManager = MenuBarManager()
-        
-        // Connect menu bar manager with schedule manager
+        // Connect components (bidirectional)
         scheduleManager?.menuBarManager = menuBarManager
+        menuBarManager?.scheduleManager = scheduleManager
         
-        // Set up menu bar callbacks
+        // Set up callbacks
         menuBarManager?.onSchedule = { [weak self] date in
             self?.scheduleManager?.scheduleNewSleep(for: date)
         }
@@ -34,9 +30,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.scheduleManager?.cancelCurrentSchedule()
         }
         
-        // Hide all windows
-        for window in NSApplication.shared.windows {
-            window.close()
+        // Hide windows
+        DispatchQueue.main.async {
+            for window in NSApplication.shared.windows {
+                window.close()
+            }
         }
     }
     
@@ -45,10 +43,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
-        scheduleManager?.cancelCurrentSchedule()
+        // Cancel current schedule through the schedule manager
+        if let scheduleManager = scheduleManager, scheduleManager.isScheduleActive {
+            scheduleManager.cancelCurrentSchedule()
+        }
+        
         scheduleManager = nil
         menuBarManager = nil
     }
+    
+
 }
 
 @main
@@ -56,6 +60,7 @@ struct MacSleepSchedulerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
+        // For menu bar only apps, we need at least one scene but we'll hide it
         Settings {
             EmptyView()
         }

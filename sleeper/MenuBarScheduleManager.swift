@@ -61,17 +61,14 @@ class MenuBarScheduleManager: ObservableObject {
     }
     
     private func setupSystemEventMonitoring() {
-        SystemEventMonitor.shared.onSystemSleep = { [weak self] in
-            // System is going to sleep - pause countdown if active
-            if self?.isScheduleActive == true {
-                print("System sleeping - pausing countdown")
-            }
+        SystemEventMonitor.shared.onSystemSleep = {
+            // System is going to sleep - countdown will pause automatically
         }
         
         SystemEventMonitor.shared.onSystemWake = { [weak self] in
             // System woke up - restore countdown if needed
             if let self = self, self.isScheduleActive, let scheduledDate = self.scheduledDate {
-                print("System woke up - restoring countdown")
+                // System woke up - restore countdown
                 
                 // Check if scheduled time has passed while system was asleep
                 if scheduledDate <= Date() {
@@ -103,7 +100,7 @@ class MenuBarScheduleManager: ObservableObject {
         // Update menu bar
         menuBarManager?.updateState(.activeCountdown(scheduleData.scheduledDate))
         
-        print("Restored schedule from persistence: \(DateUtilities.formatForDisplay(date: scheduleData.scheduledDate))")
+        // Schedule restored from persistence
     }
     
     private func persistCurrentSchedule() {
@@ -140,10 +137,7 @@ class MenuBarScheduleManager: ObservableObject {
     }
     
     func cancelCurrentSchedule() {
-        // Stop countdown
-        countdownService.stopCountdown()
-        
-        // Cancel pmset schedule (this would require additional implementation)
+        // Cancel pmset schedule first
         cancelPmsetSchedule()
         
         // Reset state
@@ -154,9 +148,12 @@ class MenuBarScheduleManager: ObservableObject {
         // Update menu bar
         menuBarManager?.updateState(.idle)
         menuBarManager?.updateMenuBarTitle("")
+        menuBarManager?.stopCountdown()
         
         // Clear persisted schedule
         SchedulePersistence.shared.clearSchedule()
+        
+        // Schedule cancelled successfully
     }
     
     private func handleSchedulerStateChange(_ state: SchedulingState) {
@@ -169,20 +166,25 @@ class MenuBarScheduleManager: ObservableObject {
             currentState = .scheduling
             menuBarManager?.updateState(.scheduling)
             
-        case .success:
+        case .success(_):
             // Schedule was successful, start countdown
             if let scheduledDate = scheduledDate {
                 isScheduleActive = true
                 currentState = .activeCountdown(scheduledDate)
                 menuBarManager?.updateState(.activeCountdown(scheduledDate))
                 
-                // Start countdown timer
-                countdownService.startCountdown(to: scheduledDate) { [weak self] in
+                // Start countdown timer in menu bar
+                menuBarManager?.startCountdown(to: scheduledDate)
+                
+                // Set up completion callback for menu bar countdown
+                menuBarManager?.onCountdownComplete = { [weak self] in
                     self?.handleCountdownComplete()
                 }
                 
                 // Persist the schedule
                 persistCurrentSchedule()
+                
+
             }
             
         case .error(let errorMessage):
@@ -231,18 +233,16 @@ class MenuBarScheduleManager: ObservableObject {
     }
     
     private func cancelPmsetSchedule() {
-        // Execute pmset command to cancel scheduled sleep
-        let cancelCommand = "pmset schedule cancel"
+        // Execute pmset command to cancel all scheduled sleep events
+        let cancelCommand = "pmset schedule cancelall"
         let nsScriptCommand = "do shell script \"\(cancelCommand)\" with administrator privileges"
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            let scriptObject = NSAppleScript(source: nsScriptCommand)
-            let _ = scriptObject?.executeAndReturnError(&error)
-            
-            if let errorDict = error {
-                print("Error canceling pmset schedule: \(errorDict)")
-            }
+        var error: NSDictionary?
+        let scriptObject = NSAppleScript(source: nsScriptCommand)
+        let _ = scriptObject?.executeAndReturnError(&error)
+        
+        if let errorDict = error {
+            print("❌ Error canceling pmset schedule: \(errorDict)")
         }
     }
     

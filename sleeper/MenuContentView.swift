@@ -49,7 +49,7 @@ struct MenuContentView: View {
         VStack(spacing: 8) {
             // Title
             HStack {
-                Image(systemName: isScheduleActive ? "clock.badge.checkmark" : "moon.zzz")
+                Image(systemName: isScheduleActive ? "checkmark.circle" : "moon.zzz")
                     .foregroundColor(isScheduleActive ? .green : .primary)
                 Text("Sleep Scheduler")
                     .font(.headline)
@@ -96,7 +96,7 @@ struct MenuContentView: View {
                 }
             }) {
                 HStack {
-                    Image(systemName: isScheduleActive ? "clock.badge.plus" : "clock.badge.plus")
+                    Image(systemName: "clock")
                     Text(isScheduleActive ? "Schedule Another Sleep..." : "Schedule New Sleep...")
                     Spacer()
                 }

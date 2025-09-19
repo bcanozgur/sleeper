@@ -33,6 +33,14 @@ class MenuBarManager: ObservableObject {
     // Callbacks for menu actions
     var onSchedule: ((Date) -> Void)?
     var onCancel: (() -> Void)?
+    var onCountdownComplete: (() -> Void)?
+    
+    // Schedule manager reference
+    weak var scheduleManager: MenuBarScheduleManager?
+    
+    // Countdown properties
+    private var countdownTimer: Timer?
+    private var scheduledDate: Date?
     
     init() {
         setupMenuBar()
@@ -40,28 +48,254 @@ class MenuBarManager: ObservableObject {
     }
     
     func setupMenuBar() {
+        // Ensure we're on the main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.createMenuBarItem()
+        }
+    }
+    
+    private func createMenuBarItem() {
         // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         guard let statusItem = statusItem else {
-            print("Failed to create status bar item")
+            print("❌ Failed to create status bar item")
             return
         }
         
         // Set default icon and title
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler")
-            button.image?.isTemplate = true // Ensures proper dark/light mode handling
+            // Use a nice moon icon for sleep scheduler
+            if let moonImage = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler") {
+                button.image = moonImage
+                button.image?.isTemplate = true
+                button.imagePosition = .imageOnly
+            } else if let moonImage = NSImage(systemSymbolName: "moon", accessibilityDescription: "Sleep Scheduler") {
+                button.image = moonImage
+                button.image?.isTemplate = true
+                button.imagePosition = .imageOnly
+            } else {
+                // Fallback to emoji
+                button.title = "💤"
+                button.font = NSFont.systemFont(ofSize: 16)
+            }
+            
+            // Alternative: try system symbol with custom size
+            /*
+            if let moonImage = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler") {
+                let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+                let resizedImage = moonImage.withSymbolConfiguration(config)
+                button.image = resizedImage
+                button.image?.isTemplate = true
+                iconSet = true
+                print("✅ Using moon.zzz system symbol with custom size")
+            }
+            */
+            
+            // Icon setup completed
+            
             button.toolTip = "Mac Sleep Scheduler - Click to schedule sleep"
             button.action = #selector(togglePopover)
             button.target = self
             
             // Enable right-click for additional options
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            
+            // Menu bar button configured
+        } else {
+            print("❌ Failed to get status bar button")
         }
         
         isMenuBarActive = true
+        
+        // Force a refresh of the status bar
+        statusItem.button?.needsDisplay = true
+        
+        // Try to make it more visible and persistent
+        statusItem.button?.alphaValue = 1.0
+        statusItem.isVisible = true
+        statusItem.autosaveName = "SleeperMenuBarItem"
+        
+        // Keep menu bar visible with periodic check
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.ensureVisible()
+        }
+        
+        // Also force refresh immediately
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.forceRefresh()
+        }
     }
+    
+    func forceMenuBarVisible() {
+        guard let statusItem = statusItem else { return }
+        
+        // Re-create the status item if needed
+        if statusItem.button == nil {
+            setupMenuBar()
+            return
+        }
+        
+        // Force visibility
+        statusItem.isVisible = true
+        statusItem.button?.isHidden = false
+        statusItem.button?.alphaValue = 1.0
+        statusItem.button?.needsDisplay = true
+    }
+    
+    private func ensureVisible() {
+        guard let statusItem = statusItem else { 
+            setupMenuBar()
+            return 
+        }
+        
+        // If it's not visible, recreate the entire status item
+        if !statusItem.isVisible || statusItem.button?.isHidden == true {
+            // Remove old status item
+            NSStatusBar.system.removeStatusItem(statusItem)
+            
+            // Create new one
+            setupMenuBar()
+            return
+        }
+    }
+    
+    private func forceRefresh() {
+        guard let statusItem = statusItem else { return }
+        
+        // Force the button to redraw
+        statusItem.button?.needsDisplay = true
+        statusItem.button?.display()
+        
+        // Try to force the status bar to refresh
+        NSStatusBar.system.removeStatusItem(statusItem)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        // Recreate the button with icon
+        if let button = self.statusItem?.button {
+            if let moonImage = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler") {
+                button.image = moonImage
+                button.image?.isTemplate = true
+                button.imagePosition = .imageOnly
+                button.title = ""
+            } else {
+                button.title = "💤"
+                button.font = NSFont.systemFont(ofSize: 16)
+            }
+            button.action = #selector(togglePopover)
+            button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        }
+        
+
+    }
+    
+    // MARK: - Countdown Functions
+    
+    func startCountdown(to date: Date) {
+        scheduledDate = date
+        countdownTimer?.invalidate()
+        
+        // Update immediately
+        updateCountdownDisplay()
+        
+        // Start timer to update every second
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateCountdownDisplay()
+        }
+        
+
+    }
+    
+    func stopCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        scheduledDate = nil
+        
+        // Reset to default icon
+        resetToDefaultIcon()
+        
+
+    }
+    
+    private func updateCountdownDisplay() {
+        guard let scheduledDate = scheduledDate,
+              let button = statusItem?.button else { return }
+        
+        let now = Date()
+        
+        // Since pmset works with minute precision, calculate time to the exact minute
+        let calendar = Calendar.current
+        let scheduledComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: scheduledDate)
+        let exactScheduledDate = calendar.date(from: scheduledComponents) ?? scheduledDate
+        
+        let timeInterval = exactScheduledDate.timeIntervalSince(now)
+        
+        // If time has passed, stop countdown and notify
+        if timeInterval <= 0 {
+            stopCountdown()
+            onCountdownComplete?()
+            return
+        }
+        
+        // Format time remaining
+        let timeString = formatTimeRemaining(timeInterval)
+        
+        // Update button with icon + countdown
+        if let moonImage = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler") {
+            button.image = moonImage
+            button.image?.isTemplate = true
+            button.title = " \(timeString)" // Space before time for better spacing
+            button.imagePosition = .imageLeft
+        } else {
+            button.title = "💤 \(timeString)"
+            button.image = nil
+        }
+        button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+        
+        // Change color based on urgency
+        if timeInterval < 60 { // Less than 1 minute - red
+            button.contentTintColor = NSColor.systemRed
+        } else if timeInterval < 600 { // Less than 10 minutes - orange
+            button.contentTintColor = NSColor.systemOrange
+        } else {
+            button.contentTintColor = NSColor.controlTextColor
+        }
+    }
+    
+    private func formatTimeRemaining(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = Int(timeInterval) % 3600 / 60
+        let seconds = Int(timeInterval) % 60
+        
+        if hours > 0 {
+            return String(format: "%dh %dm", hours, minutes)
+        } else if minutes > 0 {
+            return String(format: "%dm %ds", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
+    }
+    
+    private func resetToDefaultIcon() {
+        guard let button = statusItem?.button else { return }
+        
+        // Reset to moon icon
+        if let moonImage = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Sleep Scheduler") {
+            button.image = moonImage
+            button.image?.isTemplate = true
+            button.title = ""
+            button.imagePosition = .imageOnly
+        } else {
+            button.title = "💤"
+            button.image = nil
+            button.font = NSFont.systemFont(ofSize: 16)
+        }
+        
+        button.contentTintColor = nil // Reset color
+    }
+    
+
     
     private func setupPopover() {
         popover = NSPopover()
@@ -131,8 +365,7 @@ class MenuBarManager: ObservableObject {
         menu.addItem(NSMenuItem.separator())
         
         // Cancel current schedule if active
-        let appDelegate = NSApplication.shared.delegate as? AppDelegate
-        if appDelegate?.scheduleManager?.isScheduleActive == true {
+        if scheduleManager?.isScheduleActive == true {
             let cancelItem = NSMenuItem(title: "Cancel Current Schedule", action: #selector(handleCancel), keyEquivalent: "")
             cancelItem.target = self
             menu.addItem(cancelItem)
@@ -217,11 +450,11 @@ class MenuBarManager: ObservableObject {
             accessibilityDescription = "Sleep Scheduler - Idle"
             toolTip = "Mac Sleep Scheduler - Click to schedule sleep"
         case .scheduling:
-            iconName = "clock.badge.plus"
+            iconName = "clock"
             accessibilityDescription = "Sleep Scheduler - Scheduling"
             toolTip = "Mac Sleep Scheduler - Scheduling in progress..."
         case .active:
-            iconName = "clock.badge.checkmark"
+            iconName = "checkmark.circle"
             accessibilityDescription = "Sleep Scheduler - Active"
             toolTip = "Mac Sleep Scheduler - Sleep scheduled (click for details)"
         case .warning:
@@ -258,10 +491,9 @@ class MenuBarManager: ObservableObject {
             self.currentState = newState
             self.updateIconForState(newState)
             
-            // Only update menu content if popover is currently shown
-            if self.popover?.isShown == true {
-                self.updateMenuContent()
-            }
+            // Always update menu content when state changes
+            // This ensures the popover shows correct info when opened
+            self.updateMenuContent()
         }
     }
     
@@ -286,9 +518,10 @@ class MenuBarManager: ObservableObject {
         // Update popover content based on state
         guard let popover = popover else { return }
         
-        // Get schedule info from app delegate
-        let appDelegate = NSApplication.shared.delegate as? AppDelegate
-        let scheduleManager = appDelegate?.scheduleManager
+        // Use direct reference to schedule manager
+        let isActive = scheduleManager?.isScheduleActive ?? false
+        let scheduleInfo = scheduleManager?.getScheduleInfo()
+        let canSchedule = scheduleManager?.canSchedule ?? true
         
         let contentView = MenuContentView(
             onSchedule: { [weak self] date in
@@ -300,9 +533,9 @@ class MenuBarManager: ObservableObject {
             onQuit: { [weak self] in
                 self?.handleQuit()
             },
-            isScheduleActive: scheduleManager?.isScheduleActive ?? false,
-            scheduleInfo: scheduleManager?.getScheduleInfo(),
-            canSchedule: scheduleManager?.canSchedule ?? true
+            isScheduleActive: isActive,
+            scheduleInfo: scheduleInfo,
+            canSchedule: canSchedule
         )
         
         popover.contentViewController = NSHostingController(rootView: contentView)

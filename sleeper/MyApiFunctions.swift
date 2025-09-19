@@ -5,10 +5,10 @@
 import Foundation
 
 class DateUtilities {
-    // Formatter for pmset command (MM/dd/yy HH:mm:ss)
+    // Formatter for pmset command (MM/dd/yy HH:mm:00 - always set seconds to 00)
     static let pmsetFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd/yy HH:mm:ss"
+        formatter.dateFormat = "MM/dd/yy HH:mm:00"
         formatter.timeZone = TimeZone.current // Use local timezone
         formatter.locale = Locale.current
         return formatter
@@ -23,9 +23,19 @@ class DateUtilities {
         return formatter
     }()
     
-    // Format date for pmset command
+    // Format date for pmset command (round to nearest minute)
     class func formatForPmset(date: Date) -> String {
-        return pmsetFormatter.string(from: date)
+        // Round to the exact minute (remove seconds)
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let roundedDate = calendar.date(from: components) ?? date
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd/yy HH:mm:ss"
+        formatter.timeZone = TimeZone.current
+        formatter.locale = Locale.current
+        
+        return formatter.string(from: roundedDate)
     }
     
     // Format date for display
